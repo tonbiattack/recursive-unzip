@@ -11,11 +11,13 @@ import (
 	"testing"
 )
 
+// zipEntry はテスト用にメモリ上で組み立てるZIPエントリを表す。
 type zipEntry struct {
 	name string
 	data []byte
 }
 
+// 通常のZIPが、同名の展開先フォルダへファイル・サブフォルダごと展開されることを確認する。
 func TestProcessFilesExtractsNormalZIP(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "images.zip")
@@ -27,9 +29,11 @@ func TestProcessFilesExtractsNormalZIP(t *testing.T) {
 	}
 	assertFileContent(t, filepath.Join(dir, "images", "001.jpg"), "image")
 	assertFileContent(t, filepath.Join(dir, "images", "nested", "readme.txt"), "hello")
+	// 既定では元ZIPを削除しない安全仕様も同時に確認する。
 	assertExists(t, archive)
 }
 
+// ZIP内にあるZIPを、親の展開先に作られた同名フォルダへ再帰展開できることを確認する。
 func TestProcessFilesExtractsNestedZIP(t *testing.T) {
 	dir := t.TempDir()
 	inner := zipBytes(t, []zipEntry{{"inside.txt", []byte("inside")}})
@@ -41,9 +45,11 @@ func TestProcessFilesExtractsNestedZIP(t *testing.T) {
 		t.Fatalf("batch=%+v, want root and nested ZIP extracted", batch)
 	}
 	assertFileContent(t, filepath.Join(dir, "outer", "sub", "inside.txt"), "inside")
+	// 内部ZIPも既定では残るため、展開済みフォルダとZIPが共存する。
 	assertExists(t, filepath.Join(dir, "outer", "sub.zip"))
 }
 
+// 探索中に新たに現れたZIPも次の周回で見つけ、3階層まで処理できることを確認する。
 func TestProcessFilesExtractsThreeNestedLevels(t *testing.T) {
 	dir := t.TempDir()
 	third := zipBytes(t, []zipEntry{{"001.jpg", []byte("pixel")}})
@@ -58,6 +64,7 @@ func TestProcessFilesExtractsThreeNestedLevels(t *testing.T) {
 	assertFileContent(t, filepath.Join(dir, "images", "sub", "inner", "001.jpg"), "pixel")
 }
 
+// 複数ZIPは処理しつつ、Explorerから混在して渡るZIP以外の項目を無視できることを確認する。
 func TestProcessFilesHandlesMultipleZIPsAndIgnoresNonZIP(t *testing.T) {
 	dir := t.TempDir()
 	a := filepath.Join(dir, "a.zip")
@@ -77,6 +84,7 @@ func TestProcessFilesHandlesMultipleZIPsAndIgnoresNonZIP(t *testing.T) {
 	assertFileContent(t, filepath.Join(dir, "b", "b.txt"), "b")
 }
 
+// 壊れたZIPがあっても、後続の最上位ZIPの処理を継続することを確認する。
 func TestProcessFilesContinuesAfterBrokenZIP(t *testing.T) {
 	dir := t.TempDir()
 	broken := filepath.Join(dir, "broken.zip")
@@ -93,6 +101,7 @@ func TestProcessFilesContinuesAfterBrokenZIP(t *testing.T) {
 	assertFileContent(t, filepath.Join(dir, "valid", "ok.txt"), "ok")
 }
 
+// 既存の展開先では、既定の上書きモードが同名ファイルをZIPの内容で更新することを確認する。
 func TestExistingDestinationCanBeOverwritten(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "same.zip")
@@ -112,6 +121,7 @@ func TestExistingDestinationCanBeOverwritten(t *testing.T) {
 	assertFileContent(t, filepath.Join(destination, "value.txt"), "new")
 }
 
+// "../../" を含むZIPエントリが展開先の親へ書き出されないことを確認する。
 func TestProcessFilesPreventsZipSlip(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "unsafe.zip")
@@ -126,6 +136,7 @@ func TestProcessFilesPreventsZipSlip(t *testing.T) {
 	}
 }
 
+// 日本語および空白を含むZIP名・フォルダ名・ファイル名を扱えることを確認する。
 func TestProcessFilesSupportsJapaneseNames(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "画像 データ.zip")
@@ -138,6 +149,7 @@ func TestProcessFilesSupportsJapaneseNames(t *testing.T) {
 	assertFileContent(t, filepath.Join(dir, "画像 データ", "写真", "こんにちは.txt"), "日本語")
 }
 
+// エントリを持たない空ZIPでも、空の展開先フォルダを作って成功することを確認する。
 func TestProcessFilesHandlesEmptyZIP(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "empty.zip")
@@ -150,6 +162,7 @@ func TestProcessFilesHandlesEmptyZIP(t *testing.T) {
 	assertDir(t, filepath.Join(dir, "empty"))
 }
 
+// --delete-zip 相当の指定時だけ、展開成功後に元ZIPが削除されることを確認する。
 func TestProcessFilesDeletesZIPWhenRequested(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "remove-me.zip")
@@ -166,6 +179,7 @@ func TestProcessFilesDeletesZIPWhenRequested(t *testing.T) {
 	}
 }
 
+// Windows固有のドライブ指定とバックスラッシュ経路も、Zip Slipとして拒否することを確認する。
 func TestSecureOutputPathRejectsWindowsDriveAndBackslashTraversal(t *testing.T) {
 	root := t.TempDir()
 	for _, entryName := range []string{"C:\\Windows\\system32\\bad.txt", "..\\outside.txt", "/absolute.txt"} {
@@ -175,11 +189,13 @@ func TestSecureOutputPathRejectsWindowsDriveAndBackslashTraversal(t *testing.T) 
 	}
 }
 
+// ZIP内のシンボリックリンクを通常ファイルとして展開せず、処理全体を失敗させることを確認する。
 func TestProcessFilesRejectsZIPSymlinkEntry(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "symlink-entry.zip")
 	buffer := new(bytes.Buffer)
 	writer := zip.NewWriter(buffer)
+	// リンク先に"../outside"を設定し、リンクを許すと展開先外へ到達し得るZIPを作る。
 	header := &zip.FileHeader{Name: "redirect"}
 	header.SetMode(os.ModeSymlink | 0o777)
 	entry, err := writer.CreateHeader(header)
@@ -202,6 +218,7 @@ func TestProcessFilesRejectsZIPSymlinkEntry(t *testing.T) {
 	}
 }
 
+// 上書き先に既存のシンボリックリンクがある場合も、リンク先への書き込みを拒否することを確認する。
 func TestProcessFilesRejectsPreexistingSymlinkedDirectory(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "linked.zip")
@@ -214,6 +231,7 @@ func TestProcessFilesRejectsPreexistingSymlinkedDirectory(t *testing.T) {
 	if err := os.MkdirAll(outside, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	// Windowsの権限設定などでリンクを作れない環境では、この防御テストだけをスキップする。
 	if err := os.Symlink(outside, filepath.Join(destination, "redirect")); err != nil {
 		t.Skipf("this environment does not allow creating a symbolic link: %v", err)
 	}
@@ -227,10 +245,12 @@ func TestProcessFilesRejectsPreexistingSymlinkedDirectory(t *testing.T) {
 	}
 }
 
+// testOptions は、ログを捨てて上書きモードを使う共通のテスト設定を返す。
 func testOptions() Options {
 	return Options{Policy: Overwrite, Logger: log.New(io.Discard, "", 0)}
 }
 
+// writeZIP は、エントリ一覧から作ったテスト用ZIPを指定パスへ書き込む。
 func writeZIP(t *testing.T, path string, entries []zipEntry) {
 	t.Helper()
 	if err := os.WriteFile(path, zipBytes(t, entries), 0o644); err != nil {
@@ -238,6 +258,7 @@ func writeZIP(t *testing.T, path string, entries []zipEntry) {
 	}
 }
 
+// zipBytes は、入れ子ZIPも作れるようにアーカイブ全体をバイト列として返す。
 func zipBytes(t *testing.T, entries []zipEntry) []byte {
 	t.Helper()
 	buffer := new(bytes.Buffer)
@@ -257,6 +278,7 @@ func zipBytes(t *testing.T, entries []zipEntry) []byte {
 	return buffer.Bytes()
 }
 
+// assertFileContent は、指定ファイルが存在し、内容が期待値と完全一致することを確認する。
 func assertFileContent(t *testing.T, path, want string) {
 	t.Helper()
 	data, err := os.ReadFile(path)
@@ -268,6 +290,7 @@ func assertFileContent(t *testing.T, path, want string) {
 	}
 }
 
+// assertExists は、削除しない仕様の元ZIPなどが残っていることを確認する。
 func assertExists(t *testing.T, path string) {
 	t.Helper()
 	if _, err := os.Stat(path); err != nil {
@@ -275,6 +298,7 @@ func assertExists(t *testing.T, path string) {
 	}
 }
 
+// assertDir は、展開先が通常ファイルではなくディレクトリとして作られたことを確認する。
 func assertDir(t *testing.T, path string) {
 	t.Helper()
 	info, err := os.Stat(path)
@@ -286,6 +310,7 @@ func assertDir(t *testing.T, path string) {
 	}
 }
 
+// "folder/../file" のように正規化後も展開先内に収まる経路は、安全な経路として許可されることを確認する。
 func TestNoUnexpectedParentTraversalInExtractedTree(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "safe.zip")
@@ -298,6 +323,7 @@ func TestNoUnexpectedParentTraversalInExtractedTree(t *testing.T) {
 	assertFileContent(t, filepath.Join(dir, "safe", "still-safe.txt"), "safe")
 }
 
+// スキップモードでは既存フォルダの内容を保持し、新しいZIP内容を展開しないことを確認する。
 func TestSkipExistingDestination(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "already.zip")
@@ -322,6 +348,7 @@ func TestSkipExistingDestination(t *testing.T) {
 	}
 }
 
+// 別名モードでは既存フォルダを壊さず、最初の連番フォルダへ展開することを確認する。
 func TestRenameExistingDestination(t *testing.T) {
 	dir := t.TempDir()
 	archive := filepath.Join(dir, "copy.zip")
