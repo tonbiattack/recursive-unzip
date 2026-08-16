@@ -1,0 +1,9 @@
+# Build artifacts
+/dist/
+*.exe
+*.zip
+
+# Test and coverage artifacts
+*.test
+*.out
+coverage.txt
