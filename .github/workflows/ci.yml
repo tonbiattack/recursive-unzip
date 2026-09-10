@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          # Go標準ライブラリだけを使いgo.sumを持たないため、不要なキャッシュ復元を行わない。
+          cache: false
+      - name: Run tests
+        run: go test ./... -count=1
+      - name: Build Windows executable
+        run: go build -trimpath -ldflags="-s -w" -o recursive-unzip.exe .\cmd\recursive-unzip

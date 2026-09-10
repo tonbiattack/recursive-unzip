@@ -1,5 +1,8 @@
 # recursive-unzip
 
+[![CI](https://github.com/tonbiattack/recursive-unzip/actions/workflows/ci.yml/badge.svg)](https://github.com/tonbiattack/recursive-unzip/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **recursive-unzip** は、Windows 11 のExplorerで選択したZIPファイルを展開し、展開後に見つかった内部ZIPもなくなるまで再帰的に展開する、外部依存のないGo製CLIツールです。元のZIPファイルは既定では削除しません。
 
 > **設計方針:** ZIPを選択して右クリックし、`ZIPを再帰展開` を実行するだけで、ネストされたZIPを意識せず展開を完了できます。ZIP以外の選択項目は無視します。
@@ -148,7 +151,11 @@ ZIPのエントリパスは展開先の相対パスとして正規化し、`file
 
 ## ライセンス
 
-現時点ではライセンスは未指定です。配布・公開前に利用方針に合うライセンスを追加してください。
+[MIT License](LICENSE) の下で公開しています。
+
+## 貢献・セキュリティ
+
+開発・Pull Requestの手順は [CONTRIBUTING.md](CONTRIBUTING.md)、脆弱性報告は [SECURITY.md](SECURITY.md) を参照してください。
 
 ## 参考資料
 
