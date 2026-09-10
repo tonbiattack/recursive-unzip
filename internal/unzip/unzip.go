@@ -28,6 +28,8 @@ const (
 type Options struct {
 	// DeleteZIP は、展開に成功したZIPを削除する明示的な指定である。
 	DeleteZIP bool
+	// DeleteNestedZIPs は、展開に成功した内部ZIPだけを削除し、最上位ZIPは残す指定である。
+	DeleteNestedZIPs bool
 	// Policy は既存の展開先フォルダに対する扱いである。
 	Policy ExistingDirPolicy
 	// Verbose は、展開された各ファイルのパスもログ出力するかを示す。
@@ -232,8 +234,8 @@ func walkAndExtractNested(root string, result *Result, options Options) error {
 				continue
 			}
 			result.ExtractedZIPs++
-			if options.DeleteZIP {
-				// 内部ZIPも、展開成功したものだけを削除対象にする。
+			if options.DeleteZIP || options.DeleteNestedZIPs {
+				// 内部ZIPは、展開成功後にだけ削除する。DeleteNestedZIPs時も最上位ZIPは残る。
 				if err := os.Remove(archivePath); err != nil {
 					extractionErrors = append(extractionErrors, fmt.Errorf("内部ZIP %s の削除に失敗しました: %w", archivePath, err))
 					continue
