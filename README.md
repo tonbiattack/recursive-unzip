@@ -75,13 +75,25 @@ PowerShellまたはコマンドプロンプトから、ZIPのフルパスまた�
 
 Windows Shellでは、ファイル種別の `shell` 配下に静的なverbとcommandを登録することで、Explorerの右クリックメニューへコマンドを追加できます。[1] 本プロジェクトでは、管理者権限を要求せず現在のユーザーに限定するため、`HKCU\Software\Classes` に登録します。
 
-まず、`recursive-unzip.exe` と `scripts\Install-ExplorerMenu.ps1` を同じ配布フォルダに置きます。次にPowerShellを開き、次の**1行のコマンド**を実行してください。
+まず、プロジェクトルートでWindows向け実行ファイルをビルドします。
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install-ExplorerMenu.ps1 -ExecutablePath "C:\Tools\recursive-unzip\recursive-unzip.exe"
+go build -trimpath -ldflags="-s -w" -o .\recursive-unzip.exe .\cmd\recursive-unzip
 ```
 
-`Set-ExecutionPolicy` を使う場合は、設定コマンドとスクリプト実行コマンドを**別々に実行**してください。改行なしで連結すると、`-Force.\scripts\...` が `Set-ExecutionPolicy` の引数として解釈され、実行できません。
+続けて、同じPowerShellで次の**1行のコマンド**を実行してください。`recursive-unzip.exe` はスクリプトから自動検出されるため、通常は `-ExecutablePath` の指定は不要です。
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; .\scripts\Install-ExplorerMenu.ps1
+```
+
+別フォルダに置いたexeを登録する場合だけ、次のように `-ExecutablePath` を指定します。
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; .\scripts\Install-ExplorerMenu.ps1 -ExecutablePath "C:\Tools\recursive-unzip\recursive-unzip.exe"
+```
+
+`;` はPowerShellで2つのコマンドを区切る記号です。改行なしで連結すると、`-Force.\scripts\...` が `Set-ExecutionPolicy` の引数として解釈され、実行できません。
 
 登録後はExplorerで1個以上のZIPを選び、右クリックして **ZIPを再帰展開** を選択します。Windows 11では、レジストリベースの静的verbが **その他のオプションを表示** のサブメニューに現れる場合があります。コマンド文字列では実行ファイルと`%1`を引用符で囲んでおり、空白を含むパスにも対応します。Windows Shellのcommand文字列では、スペースを含む可能性がある実行ファイル・引数を引用符で囲むことが推奨されています。[2]
 
