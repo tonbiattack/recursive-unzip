@@ -12,12 +12,18 @@
 param(
     # 省略時は、このscriptsフォルダの親にあるrecursive-unzip.exeを使う。
     [Parameter(Mandatory = $false)]
-    [string]$ExecutablePath = (Join-Path $PSScriptRoot "..\recursive-unzip.exe")
+    [string]$ExecutablePath
 )
 
 # 未定義変数をエラーにし、失敗を握りつぶさないインストール処理にする。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+if ([string]::IsNullOrWhiteSpace($ExecutablePath)) {
+    # パラメーター既定値の評価時には $PSScriptRoot が未設定の場合があるため、
+    # スクリプト本体で既定の実行ファイルを決定する。
+    $ExecutablePath = Join-Path (Split-Path -Parent $PSScriptRoot) "recursive-unzip.exe"
+}
 
 try {
     # 相対パスを絶対パスへ解決し、登録するコマンド文字列を一意にする。
