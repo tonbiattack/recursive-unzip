@@ -22,6 +22,7 @@ ZIP以外の引数は無視します。
 
 オプション:
   --delete-zip              展開に成功したZIPを削除します（既定: 残す）
+  --delete-nested-zip       展開に成功した内部ZIPだけを削除します（最上位ZIPは残す）
   --overwrite               既存の展開先に上書きします（既定）
   --skip-existing           既存の展開先があれば、そのZIPを処理しません
   --rename-existing         既存の展開先があれば " (2)" 等を付けた別名フォルダを作ります
@@ -33,6 +34,8 @@ ZIP以外の引数は無視します。
 func main() {
 	// ZIP削除はデータ消失につながるため、明示指定された場合だけ有効にする。
 	deleteZIP := flag.Bool("delete-zip", false, "展開に成功したZIPを削除する")
+	// 内部ZIPのみの削除は、元のZIPを保管しながら転送用フォルダを整理するときに使う。
+	deleteNestedZIP := flag.Bool("delete-nested-zip", false, "展開に成功した内部ZIPだけを削除する")
 	// 既存フォルダの扱いは相互排他的な選択肢として後で検証する。
 	overwrite := flag.Bool("overwrite", false, "既存の展開先に上書きする（既定）")
 	skipExisting := flag.Bool("skip-existing", false, "既存の展開先をスキップする")
@@ -63,10 +66,11 @@ func main() {
 	// プレフィックスや時刻を付けず、中核処理が定義する [START] 等の形式をそのまま表示する。
 	logger := log.New(os.Stdout, "", 0)
 	batch := unzip.ProcessFiles(paths, unzip.Options{
-		DeleteZIP: *deleteZIP,
-		Policy:    policy,
-		Verbose:   *verbose,
-		Logger:    logger,
+		DeleteZIP:        *deleteZIP,
+		DeleteNestedZIPs: *deleteNestedZIP,
+		Policy:           policy,
+		Verbose:          *verbose,
+		Logger:           logger,
 	})
 
 	// 個別ログに加えて、呼び出し元が成否を一目で判断できる集計を最後に出力する。

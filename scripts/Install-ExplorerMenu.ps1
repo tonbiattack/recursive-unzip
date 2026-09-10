@@ -50,8 +50,9 @@ Set-ItemProperty -Path $verbKey -Name "MultiSelectModel" -Value "Player"
 Set-ItemProperty -Path $verbKey -Name "Position" -Value "Top"
 
 # 実行ファイルと%1を引用符で囲み、空白を含むパスが1つの引数として渡るようにする。
+# Explorerからは、内部ZIPだけを削除し、利用者が選んだ最上位ZIPは残す。
 New-Item -Path $commandKey -Force | Out-Null
-$command = '"{0}" "%1"' -f $resolvedExecutable
+$command = '"{0}" --delete-nested-zip "%1"' -f $resolvedExecutable
 Set-Item -Path $commandKey -Value $command
 
 # 登録結果を表示し、利用者が設定した実行コマンドを確認できるようにする。

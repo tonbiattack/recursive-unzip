@@ -49,6 +49,30 @@ func TestProcessFilesExtractsNestedZIP(t *testing.T) {
 	assertExists(t, filepath.Join(dir, "outer", "sub.zip"))
 }
 
+// 内部ZIPだけを削除する指定では、再帰展開に成功した内部ZIPを削除し、最上位ZIPは残すことを確認する。
+func TestProcessFilesDeletesOnlyNestedZIPsWhenRequested(t *testing.T) {
+	dir := t.TempDir()
+	third := zipBytes(t, []zipEntry{{"photo.jpg", []byte("pixel")}})
+	second := zipBytes(t, []zipEntry{{"inner.zip", third}})
+	archive := filepath.Join(dir, "photos.zip")
+	writeZIP(t, archive, []zipEntry{{"album.zip", second}})
+
+	options := testOptions()
+	options.DeleteNestedZIPs = true
+	batch := ProcessFiles([]string{archive}, options)
+	if batch.Success != 1 || batch.Failed != 0 || batch.Results[0].ExtractedZIPs != 3 {
+		t.Fatalf("batch=%+v, want all three ZIPs extracted", batch)
+	}
+	assertExists(t, archive)
+	if _, err := os.Stat(filepath.Join(dir, "photos", "album.zip")); !os.IsNotExist(err) {
+		t.Fatalf("nested archive still exists or stat failed: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "photos", "album", "inner.zip")); !os.IsNotExist(err) {
+		t.Fatalf("deeply nested archive still exists or stat failed: %v", err)
+	}
+	assertFileContent(t, filepath.Join(dir, "photos", "album", "inner", "photo.jpg"), "pixel")
+}
+
 // 探索中に新たに現れたZIPも次の周回で見つけ、3階層まで処理できることを確認する。
 func TestProcessFilesExtractsThreeNestedLevels(t *testing.T) {
 	dir := t.TempDir()
