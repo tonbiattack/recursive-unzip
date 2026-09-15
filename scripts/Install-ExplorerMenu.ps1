@@ -49,10 +49,12 @@ Set-ItemProperty -Path $verbKey -Name "Icon" -Value ('"{0}",0' -f $resolvedExecu
 Set-ItemProperty -Path $verbKey -Name "MultiSelectModel" -Value "Player"
 Set-ItemProperty -Path $verbKey -Name "Position" -Value "Top"
 
+# MultiSelectModel=Player により、複数選択は1回のプロセス起動でまとめて渡される。
+# --no-open を付け、展開に成功してもExplorerのウィンドウを追加で開かない。
 # 実行ファイルと%1を引用符で囲み、空白を含むパスが1つの引数として渡るようにする。
 # Explorerからは、内部ZIPだけを削除し、利用者が選んだ最上位ZIPは残す。
 New-Item -Path $commandKey -Force | Out-Null
-$command = '"{0}" --delete-nested-zip "%1"' -f $resolvedExecutable
+$command = '"{0}" --delete-nested-zip --no-open "%1"' -f $resolvedExecutable
 Set-Item -Path $commandKey -Value $command
 
 # 登録結果を表示し、利用者が設定した実行コマンドを確認できるようにする。
