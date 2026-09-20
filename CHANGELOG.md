@@ -2,6 +2,10 @@
 
 このプロジェクトは[Semantic Versioning](https://semver.org/)に従います。
 
+## Unreleased
+
+- Explorer右クリックメニューで複数のZIPを選択したとき、全てのパスを1回の起動へ渡すよう修正
+
 ## [0.1.0] - 2026-09-10
 
 ### Added
